@@ -18,13 +18,15 @@ if (!is_active_sidebar('sidebar-2')) {
 
 
 
-
-if ( is_page() ){
 echo "<aside id='secondary' class='widget-area'>";
+if (is_page()) {
 	dynamic_sidebar('sidebar-2');
-	echo "</aside>";
 } else {
-	echo "<aside id='secondary' class='widget-area'>";
 	dynamic_sidebar('sidebar-1');
-	echo "</aside><!-- #secondary -->";
 }
+?>
+
+<?php get_template_part('template-parts/work', 'categories'); ?>
+<?php get_template_part('template-parts/testimonial', 'random'); ?>
+
+</aside>

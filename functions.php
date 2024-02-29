@@ -48,6 +48,21 @@ function fwd_setup()
 		*/
 	add_theme_support('post-thumbnails');
 
+	// custom crop sizes
+	add_image_size(
+		'latest-blog', // make a crop
+		400,			// max width in px
+		200,			// max height in px
+		true 			//hard crop
+	);
+
+	add_image_size(
+		'portrait-blog', // make a crop
+		200,			// max width in px
+		250,			// max height in px
+		true 			//hard crop
+	);
+
 	// This theme uses wp_nav_menu() in one location.
 	register_nav_menus(
 		array(
@@ -170,14 +185,31 @@ add_action('widgets_init', 'fwd_widgets_init');
  */
 function fwd_scripts()
 {
+
+	wp_enqueue_style(
+		'fwd-googlefonts', //unique handle
+		'https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300..800;1,300..800&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap', //url to css
+		array(), //dependencies
+		null, //version set to null for google fonts
+		'all' //media... default is all
+	);
+	
 	wp_enqueue_style('fwd-style', get_stylesheet_uri(), array(), _S_VERSION);
 	wp_style_add_data('fwd-style', 'rtl', 'replace');
-
 	wp_enqueue_script('fwd-navigation', get_template_directory_uri() . '/js/navigation.js', array(), _S_VERSION, true);
 
 	if (is_singular() && comments_open() && get_option('thread_comments')) {
 		wp_enqueue_script('comment-reply');
 	}
+
+	// Enqueue Swiper on the Homepage
+	if (is_front_page()) {
+		wp_enqueue_style('swiper-styles', get_template_directory_uri() . '/css/swiper-bundle.css', array(), '11.0.6');
+		wp_enqueue_script('swiper-scripts', get_template_directory_uri() . '/js/swiper-bundle.min.js', array(), '11.0.6', array('strategy' => 'defer'));
+		wp_enqueue_script('swiper-settings', get_template_directory_uri() . '/js/swiper-settings.js', array('swiper-scripts'), _S_VERSION, array('strategy' => 'defer'));
+	}
+
+	wp_enqueue_script('scroll-to-top', get_template_directory_uri() . '/js/scroll-to-top.js', array(), '1.0.0', true);
 }
 add_action('wp_enqueue_scripts', 'fwd_scripts');
 
@@ -202,3 +234,134 @@ require get_template_directory() . '/inc/customizer.php';
 if (defined('JETPACK__VERSION')) {
 	require get_template_directory() . '/inc/jetpack.php';
 }
+
+/**
+ * Custom Post Types & Taxonomies
+ */
+require get_template_directory() . '/inc/cpt-taxonomy.php';
+
+// add theme color meta tag
+function fwd_theme_color()
+{
+	echo "<meta name='theme-color' content='#fff200'>";
+}
+
+add_action('wp_head', 'fwd_theme_color', 1);
+
+// change except length from 55 to 20 words
+function fwd_excerpt_length($length)
+{
+	return 20;
+}
+
+add_filter('excerpt_length', 'fwd_excerpt_length', 999);
+
+
+// replace the [...] from excerpt
+function fwd_excerpt_more($more)
+{
+	$more = '...<a href="' . esc_url(get_permalink()) . '">Continue Reading</a>';
+	return $more;
+}
+add_filter('excerpt_more', 'fwd_excerpt_more');
+
+
+
+// Add Block Templates to Pages
+function fwd_block_editor_templates()
+{
+	// Replace '70' with the Page ID... Template for test (blocks)
+	if (isset($_GET['post']) && '70' == $_GET['post']) {
+		$post_type_object = get_post_type_object('page');
+		$post_type_object->template = array(
+			// define blocks here
+			array(
+				'core/paragraph',
+				array(
+					'placeholder' => 'Add your introduction here...'
+				)
+			),
+			array(
+				'core/heading',
+				array(
+					'placeholder' => 'Add your heading here...',
+					'level' => 2
+				)
+			),
+			array(
+				'core/image',
+				array(
+					'align' => 'left',
+					'sizeSlug' => 'medium'
+				)
+			),
+			array(
+				'core/paragraph',
+				array(
+					'placeholder' => 'Add text here...'
+				)
+			),
+		);
+		// lock block
+		$post_type_object->template_lock = 'all';
+	}
+
+	// contact page block
+	if (isset($_GET['post']) && '19' == $_GET['post']) {
+		$post_type_object = get_post_type_object('page');
+		$post_type_object->template = array(
+			array(
+				'core/paragraph',
+				array(
+					'placeholder' => 'Add your introduction here...'
+				)
+			),
+			array(
+				'core/shortcode',
+			),
+		);
+		$post_type_object->template_lock = 'all';
+	}
+
+	//
+	if (isset($_GET['post']) && '19' == $_GET['post']) {
+		$post_type_object = get_post_type_object('page');
+		$post_type_object->template = array(
+			array(
+				'core/paragraph',
+				array(
+					'placeholder' => 'Add your introduction here...'
+				)
+			),
+			array(
+				'core/shortcode',
+			),
+		);
+		$post_type_object->template_lock = 'all';
+	}
+}
+add_action('init', 'fwd_block_editor_templates');
+
+
+// disable block
+function fwd_post_filter($use_block_editor, $post)
+{
+	// Change 112 to your Page ID... comma id# to remove from more pages
+	$page_ids = array(86, 9);
+	if (in_array($post->ID, $page_ids)) {
+		return false;
+	} else {
+		return $use_block_editor;
+	}
+}
+add_filter('use_block_editor_for_post', 'fwd_post_filter', 10, 2);
+
+
+
+function mytheme_get_the_archive_title($title, $original_title, $prefix)
+{
+	$prefix = '<span class="archive-prefix">' . __('', 'fwd-theme') . '</span>';
+	$title  = '<span class="archive-title">' . $original_title . '</span>';
+	return $prefix . $title;
+}
+add_filter('get_the_archive_title', 'mytheme_get_the_archive_title', 10, 3);
